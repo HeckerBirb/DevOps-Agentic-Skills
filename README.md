@@ -1,0 +1,172 @@
+# Copilot Skills — Ansible & Kubernetes Platform Engineering
+
+A collection of GitHub Copilot CLI skills for DevOps and Platform Engineering
+teams developing Ansible roles that manage Kubernetes workloads.
+
+---
+
+## Skills
+
+### `ansible-k8s-role-development`
+
+> Develop, author, modify, and debug Ansible roles that manage Kubernetes
+> resources using the `kubernetes.core` collection.
+
+**Use this skill when you want to:**
+- Write a new Ansible role that deploys a workload to Kubernetes
+- Add or modify tasks in an existing role
+- Debug a failing Ansible playbook against a Kubernetes cluster
+- Review an existing role for Ansible and Kubernetes best practices
+- Author production-grade platform roles (Kafka, OpenBao/Vault, cert-manager,
+  Rook/Ceph, Cilium, monitoring stacks, etc.)
+- Handle Kubernetes secrets safely with Ansible Vault
+- Troubleshoot Kubernetes resource states non-destructively
+
+**Target stack:**
+- Kubernetes on **Talos Linux** (immutable OS, no SSH, `talosctl`)
+- **Cilium** CNI (L3/L4 + L7 network policies)
+- **Rook/Ceph** CSI (block and filesystem storage)
+- **OpenBao** (Vault fork — manual unseal required after pod restart)
+
+**Enforces:**
+- `run_once: true` + `delegate_to: localhost` on all `kubernetes.core` tasks
+- Fully Qualified Collection Names (FQCN) on every module call
+- `k8s_info` pre-check before every mutating `k8s` task
+- CRD installation + `Established` condition guard before CR deployment
+- `merge_type: [merge]` for Custom Resources (CRDs)
+- `--check --diff` (dry-run) before every apply
+- Idempotency verification (re-run after apply, expect 0 changed)
+- vars/vault split pattern — secret names visible, values always encrypted
+- Auto-generated credential capture and Ansible Vault storage
+- Ceph health gate before any node drain operation
+- Default-deny NetworkPolicy with every deployed workload
+
+---
+
+### `devops-platform-skill-designer`
+
+> Design and create high-quality, production-grade `SKILL.md` files for DevOps
+> and Platform Engineering tools, workflows, and practices.
+
+**Use this skill when you want to:**
+- Create a new Copilot skill for any DevOps or Platform Engineering tool
+- Go beyond what the generic `create-skill` skill produces
+- Design skills for infrastructure automation, orchestration, GitOps,
+  observability, secrets management, service meshes, or platform engineering
+- Ensure the generated skill covers Day-0 through Day-2 operations, rollback,
+  observability, and environment variations
+- Audit an existing skill for operational completeness
+
+**Supported tool categories:**
+CLI tools · IaC / Config Management · GitOps / CD · Orchestration ·
+Observability · Security & Secrets · Platform Engineering · Networking / Service Mesh
+
+**What makes skills produced by this designer better than generic ones:**
+
+| Generic skill creator | This designer |
+|---|---|
+| One template for all tools | Three profiles: CLI Ops · Declarative/IaC · GitOps/Controller |
+| No source-of-truth question | Source of truth is Question #1 |
+| No anti-hallucination guard | Commands not in docs emit `<!-- NEEDS VERIFICATION -->` |
+| Checklist at the end | Scoring rubric blocks finalization if critical dimensions fail |
+| No blast radius concept | Blast radius + reversibility assessed per mutating step |
+| Generic rollback section | Tool-specific recovery path with runnable commands |
+| Boilerplate sections | Sections only included if applicable to the specific tool |
+| No Day-2 lifecycle | Upgrade, drift detection, credential rotation, decommission |
+
+**Quality dimensions enforced:**
+Correctness Grounding · Execution Safety · Rollback/Recovery ·
+Observability · Environment Specificity · Least Privilege · Composability
+
+---
+
+## Installation
+
+### Personal skills (available across all your projects)
+
+```bash
+copilot skill add ~/.copilot/skills/ansible-k8s-role-development/SKILL.md
+copilot skill add ~/.copilot/skills/devops-platform-skill-designer/SKILL.md
+
+Or clone this repository and register the skills directory:
+
+git clone <this-repo> ~/copilot-platform-skills
+copilot skill add ~/copilot-platform-skills/skills
+
+Project skills (this repo only)
+
+copilot skill add --project ./skills/ansible-k8s-role-development/SKILL.md
+copilot skill add --project ./skills/devops-platform-skill-designer/SKILL.md
+
+Verify installation:
+
+copilot skill list
+
+────────────────────
+
+Usage
+
+Skills are invoked automatically when your prompt matches the skill's description,
+or you can invoke them explicitly:
+
+Use the /ansible-k8s-role-development skill to write a role that deploys a
+production-ready Kafka cluster with HA, TLS, and Rook/Ceph storage.
+
+Use the /devops-platform-skill-designer skill to create a new skill for
+managing cert-manager certificate issuers with Ansible.
+
+────────────────────
+
+Repository Structure
+
+skills/
+├── ansible-k8s-role-development/
+│   └── SKILL.md
+└── devops-platform-skill-designer/
+    └── SKILL.md
+README.md
+
+────────────────────
+
+Prerequisites
+
+For  ansible-k8s-role-development 
+
+┌────────────────────────────┬──────────────┬───────────────────────────────────────────────────────────────┐
+│ Tool                       │ Min. version │ Verify                                                        │
+├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
+│ ansible-core               │ 2.16.0       │ ansible --version                                             │
+├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
+│ kubernetes.core collection │ 6.4.0        │ ansible-galaxy collection list | grep kubernetes.core         │
+├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
+│ Python kubernetes          │ 24.2.0       │ python3 -c "import kubernetes; print(kubernetes.__version__)" │
+├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
+│ Python PyYAML              │ 3.11         │ python3 -c "import yaml; print(yaml.__version__)"             │
+├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
+│ kubectl                    │ —            │ kubectl version --client                                      │
+├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
+│ helm                       │ 3.0.0        │ helm version                                                  │
+└────────────────────────────┴──────────────┴───────────────────────────────────────────────────────────────┘
+
+For  devops-platform-skill-designer 
+
+No additional prerequisites beyond GitHub Copilot CLI.
+
+────────────────────
+
+Contributing
+
+To add a new skill to this collection, use the  devops-platform-skill-designer 
+skill — it will guide you through the 6-phase design process and enforce quality
+standards before writing any file.
+
+New skills must pass the Phase 5 scoring rubric:
+
+• All dimensions score ≥ 1
+• Correctness Grounding = 2 (all commands verified against official docs)
+• Execution Safety = 2 (blast radius assessed, preflight defined, abort criteria clear)
+
+────────────────────
+
+License
+MIT
