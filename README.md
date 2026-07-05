@@ -11,254 +11,124 @@ All contents of this repository, except for this one line, follows the following
 
 ### `ansible-k8s-role-development`
 
-> Develop, author, modify, and debug Ansible roles that manage Kubernetes
-> resources using the `kubernetes.core` collection.
+> Develop, author, modify, and debug Ansible roles that manage Kubernetes resources using the `kubernetes.core` collection.
 
-**Use this skill when you want to:**
-- Write a new Ansible role that deploys a workload to Kubernetes
-- Add or modify tasks in an existing role
-- Debug a failing Ansible playbook against a Kubernetes cluster
-- Review an existing role for Ansible and Kubernetes best practices
-- Author production-grade platform roles (Kafka, OpenBao/Vault, cert-manager,
-  Rook/Ceph, Cilium, monitoring stacks, etc.)
-- Handle Kubernetes secrets safely with Ansible Vault
-- Troubleshoot Kubernetes resource states non-destructively
-
-**Target stack:**
-- Kubernetes on **Talos Linux** (immutable OS, no SSH, `talosctl`)
-- **Cilium** CNI (L3/L4 + L7 network policies)
-- **Rook/Ceph** CSI (block and filesystem storage)
-- **OpenBao** (Vault fork — manual unseal required after pod restart)
-
-**Enforces:**
-- `run_once: true` + `delegate_to: localhost` on all `kubernetes.core` tasks
-- Fully Qualified Collection Names (FQCN) on every module call
-- `k8s_info` pre-check before every mutating `k8s` task
-- CRD installation + `Established` condition guard before CR deployment
-- `merge_type: [merge]` for Custom Resources (CRDs)
-- `--check --diff` (dry-run) before every apply
-- Idempotency verification (re-run after apply, expect 0 changed)
-- vars/vault split pattern — secret names visible, values always encrypted
-- Auto-generated credential capture and Ansible Vault storage
-- Ceph health gate before any node drain operation
-- Default-deny NetworkPolicy with every deployed workload
+- Write, modify, or debug Ansible roles that deploy workloads to Kubernetes
+- Author production-grade platform roles (Kafka, cert-manager, Cilium, Rook/Ceph, etc.)
+- Handle Kubernetes secrets safely with Ansible Vault and enforce idempotency
 
 ---
 
 ### `talos-linux-operations`
 
-> Manage Talos Linux clusters: bootstrapping, machine config authoring and
-> patching, Talos OS upgrades, Kubernetes version upgrades, etcd maintenance,
-> and disaster recovery using `talosctl`.
+> Manage Talos Linux clusters using `talosctl`: bootstrapping, machine config patching, OS and Kubernetes upgrades, etcd maintenance, and disaster recovery.
 
-**Use this skill when you want to:**
-- Bootstrap a new Talos cluster from scratch (Day 0)
-- Apply or patch machine configs safely with dry-run and mode selection
-- Upgrade Talos OS version (one node at a time, with health gates)
-- Upgrade the Kubernetes version via `talosctl upgrade-k8s`
-- Back up and restore etcd snapshots
-- Diagnose Talos node and service health
-- Perform etcd maintenance (defrag, alarm management, leadership transfer)
-- Rotate the Talos or Kubernetes CA
-- Recover from a node failure or etcd quorum loss
-
-**Target stack:** Any Talos Linux cluster — bare metal, VMs, or cloud
-
-**Enforces:**
-- `--dry-run` before every config apply or patch
-- etcd health gate before upgrading any control plane node
-- Sequential upgrade (one CP node at a time, health check between each)
-- Adjacent minor-version upgrade path (no skipping minor releases)
-- etcd snapshot before any reset or recovery operation
-- Patch files (deltas) in Git, not full generated machine configs
+- Bootstrap a new cluster or apply/patch machine configs with dry-run safety gates
+- Upgrade Talos OS or the Kubernetes version one node at a time
+- Maintain etcd, rotate CAs, and recover from node failure or quorum loss
 
 ---
 
 ### `rook-ceph-operations`
 
-> Manage Rook-orchestrated Ceph clusters on Kubernetes: bootstrapping,
-> storage class provisioning, OSD failure recovery, node drain safety,
-> and upgrades.
+> Manage Rook-orchestrated Ceph clusters on Kubernetes: bootstrapping, storage class provisioning, OSD failure recovery, node drain safety, and upgrades.
 
-**Use this skill when you want to:**
-- Install the Rook operator and create a `CephCluster` (Day 0)
-- Provision RBD block storage, CephFS, or object storage (Day 1)
-- Safely drain a Kubernetes node that hosts Ceph OSDs
-- Recover from an OSD failure
-- Upgrade the Rook operator or Ceph version
-- Diagnose `HEALTH_WARN` / `HEALTH_ERR` conditions via the Ceph toolbox
-- Troubleshoot PVC binding failures on Ceph-backed storage
-
-**Target stack:** Any Kubernetes cluster running Rook/Ceph
-
-**Enforces:**
-- `HEALTH_OK` gate before every node drain, upgrade, or destructive operation
-- `ceph osd set noout` before draining any node with OSDs
-- `ceph osd safe-to-destroy` check before purging an OSD
-- Version-pinned toolbox manifest (not `master` branch)
-- Operator-first upgrade sequence (Rook operator → then Ceph version)
-- Explicit disk wipe before CephCluster deletion to prevent orphaned LVM metadata
+- Install the Rook operator and provision RBD block, CephFS, or object storage
+- Safely drain nodes with OSDs, recover from OSD failures, and expand the cluster
+- Upgrade Rook or Ceph, diagnose health warnings, and troubleshoot PVC failures
 
 ---
 
 ### `openbao-operations`
 
-> Deploy and operate OpenBao (open-source Vault fork) on Kubernetes: Helm
-> installation, initialization, all unseal methods, secrets engine and auth
-> method configuration, policy authoring, Raft snapshots, and upgrades.
+> Deploy and operate OpenBao (open-source Vault fork) on Kubernetes: HA Helm installation, all unseal methods, secrets engines, auth methods, policy authoring, Raft snapshots, and upgrades.
 
-**Use this skill when you want to:**
-- Install OpenBao on Kubernetes with HA Raft storage (Day 0)
-- Initialize OpenBao and handle unseal keys or KMS configuration safely
-- Configure Kubernetes auth or AppRole auth for pod access
-- Enable and configure KV, PKI, or transit secrets engines
-- Write least-privilege policies stored in Git
-- Back up Raft state or restore from a snapshot
-- Upgrade OpenBao safely (standbys first, active last)
-- Troubleshoot a sealed or unhealthy OpenBao pod
-
-**Target stack:** Any Kubernetes cluster — cloud-agnostic (AWS KMS, GCP
-CKMS, Azure Key Vault, or manual Shamir unseal)
-
-> **Note:** OpenBao is a Vault fork. CLI binary is `bao` (not `vault`).
-> Environment variables use `BAO_ADDR`, `BAO_TOKEN` (not `VAULT_*`).
-
-**Enforces:**
-- Audit logging enabled on Day 0 before any secrets are written
-- Root token revoked immediately after initial configuration
-- PGP-encrypted init output for sensitive environments
-- `setNodeId: true` in HA Raft to prevent split-brain on pod reschedule
-- `global.tlsDisable: false` in production
-- Standbys upgraded before active pod (OnDelete StatefulSet strategy)
-- Raft snapshot + quiesce sequence before restore
-- One Kubernetes auth role per service account (no sharing)
+- Install and initialize OpenBao with Shamir keys, AWS KMS, GCP CKMS, or Azure Key Vault unseal
+- Configure Kubernetes auth, AppRole, KV/PKI/transit secrets engines, and least-privilege policies
+- Back up and restore Raft state, upgrade safely, and troubleshoot sealed or unhealthy pods
 
 ---
 
 ### `devops-platform-skill-designer`
 
-> Design and create high-quality, production-grade `SKILL.md` files for DevOps
-> and Platform Engineering tools, workflows, and practices.
+> Design and create production-grade `SKILL.md` files for DevOps and Platform Engineering tools, covering Day-0 through Day-2 operations with operational safety built in.
 
-**Use this skill when you want to:**
 - Create a new Copilot skill for any DevOps or Platform Engineering tool
-- Go beyond what the generic `create-skill` skill produces
-- Design skills for infrastructure automation, orchestration, GitOps,
-  observability, secrets management, service meshes, or platform engineering
-- Ensure the generated skill covers Day-0 through Day-2 operations, rollback,
-  observability, and environment variations
-- Audit an existing skill for operational completeness
-
-**Supported tool categories:**
-CLI tools · IaC / Config Management · GitOps / CD · Orchestration ·
-Observability · Security & Secrets · Platform Engineering · Networking / Service Mesh
-
-**What makes skills produced by this designer better than generic ones:**
-
-| Generic skill creator | This designer |
-|---|---|
-| One template for all tools | Three profiles: CLI Ops · Declarative/IaC · GitOps/Controller |
-| No source-of-truth question | Source of truth is Question #1 |
-| No anti-hallucination guard | Commands not in docs emit `<!-- NEEDS VERIFICATION -->` |
-| Checklist at the end | Scoring rubric blocks finalization if critical dimensions fail |
-| No blast radius concept | Blast radius + reversibility assessed per mutating step |
-| Generic rollback section | Tool-specific recovery path with runnable commands |
-| Boilerplate sections | Sections only included if applicable to the specific tool |
-| No Day-2 lifecycle | Upgrade, drift detection, credential rotation, decommission |
-
-**Quality dimensions enforced:**
-Correctness Grounding · Execution Safety · Rollback/Recovery ·
-Observability · Environment Specificity · Least Privilege · Composability
+- Enforce correctness grounding, blast-radius assessment, rollback paths, and observability
+- Audit an existing skill for operational completeness against a structured scoring rubric
 
 ---
 
 ## Installation
 
-### Personal skills (available across all your projects)
+Install any skill directly — no cloning required:
 
 ```bash
-copilot skill add ~/.copilot/skills/ansible-k8s-role-development/SKILL.md
-copilot skill add ~/.copilot/skills/devops-platform-skill-designer/SKILL.md
+# Install individual skills
+copilot skill add https://raw.githubusercontent.com/HeckerBirb/DevOps-Agentic-Skills/main/ansible-k8s-role-development/SKILL.md
+copilot skill add https://raw.githubusercontent.com/HeckerBirb/DevOps-Agentic-Skills/main/devops-platform-skill-designer/SKILL.md
+copilot skill add https://raw.githubusercontent.com/HeckerBirb/DevOps-Agentic-Skills/main/talos-linux-operations/SKILL.md
+copilot skill add https://raw.githubusercontent.com/HeckerBirb/DevOps-Agentic-Skills/main/rook-ceph-operations/SKILL.md
+copilot skill add https://raw.githubusercontent.com/HeckerBirb/DevOps-Agentic-Skills/main/openbao-operations/SKILL.md
 
-Or clone this repository and register the skills directory:
-
-git clone <this-repo> ~/copilot-platform-skills
-copilot skill add ~/copilot-platform-skills/skills
-
-Project skills (this repo only)
-
-copilot skill add --project ./skills/ansible-k8s-role-development/SKILL.md
-copilot skill add --project ./skills/devops-platform-skill-designer/SKILL.md
-
-Verify installation:
-
+# Verify installation
 copilot skill list
+```
 
-────────────────────
+**Install into the current project** (`.github/skills/`) instead of your personal skills:
 
-Usage
+```bash
+copilot skill add --project https://raw.githubusercontent.com/HeckerBirb/DevOps-Agentic-Skills/main/talos-linux-operations/SKILL.md
+```
+
+**Install all skills at once** by cloning and registering the directory:
+
+```bash
+git clone https://github.com/HeckerBirb/DevOps-Agentic-Skills.git ~/devops-agentic-skills
+copilot skill add ~/devops-agentic-skills
+```
+
+---
+
+## Usage
 
 Skills are invoked automatically when your prompt matches the skill's description,
-or you can invoke them explicitly:
+or you can invoke them explicitly. Some example prompts:
 
-Use the /ansible-k8s-role-development skill to write a role that deploys a
-production-ready Kafka cluster with HA, TLS, and Rook/Ceph storage.
+- *Use the talos-linux-operations skill to upgrade my control plane nodes to Talos 1.9.*
+- *Use the rook-ceph-operations skill to safely drain node worker-3 which has Ceph OSDs.*
+- *Use the openbao-operations skill to configure Kubernetes auth for my app namespace.*
+- *Use the devops-platform-skill-designer skill to create a new skill for cert-manager.*
 
-Use the /devops-platform-skill-designer skill to create a new skill for
-managing cert-manager certificate issuers with Ansible.
+---
 
-────────────────────
+## Repository Structure
 
-Repository Structure
+```
+DevOps-Agentic-Skills/
+├── ansible-k8s-role-development/SKILL.md
+├── devops-platform-skill-designer/SKILL.md
+├── talos-linux-operations/SKILL.md
+├── rook-ceph-operations/SKILL.md
+└── openbao-operations/SKILL.md
+```
 
-skills/
-├── ansible-k8s-role-development/
-│   └── SKILL.md
-└── devops-platform-skill-designer/
-    └── SKILL.md
-README.md
+---
 
-────────────────────
+## Contributing
 
-Prerequisites
-
-For  ansible-k8s-role-development 
-
-┌────────────────────────────┬──────────────┬───────────────────────────────────────────────────────────────┐
-│ Tool                       │ Min. version │ Verify                                                        │
-├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
-│ ansible-core               │ 2.16.0       │ ansible --version                                             │
-├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
-│ kubernetes.core collection │ 6.4.0        │ ansible-galaxy collection list | grep kubernetes.core         │
-├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
-│ Python kubernetes          │ 24.2.0       │ python3 -c "import kubernetes; print(kubernetes.__version__)" │
-├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
-│ Python PyYAML              │ 3.11         │ python3 -c "import yaml; print(yaml.__version__)"             │
-├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
-│ kubectl                    │ —            │ kubectl version --client                                      │
-├────────────────────────────┼──────────────┼───────────────────────────────────────────────────────────────┤
-│ helm                       │ 3.0.0        │ helm version                                                  │
-└────────────────────────────┴──────────────┴───────────────────────────────────────────────────────────────┘
-
-For  devops-platform-skill-designer 
-
-No additional prerequisites beyond GitHub Copilot CLI.
-
-────────────────────
-
-Contributing
-
-To add a new skill to this collection, use the  devops-platform-skill-designer 
+To add a new skill to this collection, use the `devops-platform-skill-designer`
 skill — it will guide you through the 6-phase design process and enforce quality
 standards before writing any file.
 
 New skills must pass the Phase 5 scoring rubric:
 
-• All dimensions score ≥ 1
-• Correctness Grounding = 2 (all commands verified against official docs)
-• Execution Safety = 2 (blast radius assessed, preflight defined, abort criteria clear)
+- All dimensions score ≥ 1
+- Correctness Grounding = 2 (all commands verified against official docs)
+- Execution Safety = 2 (blast radius assessed, preflight defined, abort criteria clear)
 
-────────────────────
+---
 
-License
+## License
+
 MIT
