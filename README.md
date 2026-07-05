@@ -45,6 +45,96 @@ All contents of this repository, except for this one line, follows the following
 
 ---
 
+### `talos-linux-operations`
+
+> Manage Talos Linux clusters: bootstrapping, machine config authoring and
+> patching, Talos OS upgrades, Kubernetes version upgrades, etcd maintenance,
+> and disaster recovery using `talosctl`.
+
+**Use this skill when you want to:**
+- Bootstrap a new Talos cluster from scratch (Day 0)
+- Apply or patch machine configs safely with dry-run and mode selection
+- Upgrade Talos OS version (one node at a time, with health gates)
+- Upgrade the Kubernetes version via `talosctl upgrade-k8s`
+- Back up and restore etcd snapshots
+- Diagnose Talos node and service health
+- Perform etcd maintenance (defrag, alarm management, leadership transfer)
+- Rotate the Talos or Kubernetes CA
+- Recover from a node failure or etcd quorum loss
+
+**Target stack:** Any Talos Linux cluster — bare metal, VMs, or cloud
+
+**Enforces:**
+- `--dry-run` before every config apply or patch
+- etcd health gate before upgrading any control plane node
+- Sequential upgrade (one CP node at a time, health check between each)
+- Adjacent minor-version upgrade path (no skipping minor releases)
+- etcd snapshot before any reset or recovery operation
+- Patch files (deltas) in Git, not full generated machine configs
+
+---
+
+### `rook-ceph-operations`
+
+> Manage Rook-orchestrated Ceph clusters on Kubernetes: bootstrapping,
+> storage class provisioning, OSD failure recovery, node drain safety,
+> and upgrades.
+
+**Use this skill when you want to:**
+- Install the Rook operator and create a `CephCluster` (Day 0)
+- Provision RBD block storage, CephFS, or object storage (Day 1)
+- Safely drain a Kubernetes node that hosts Ceph OSDs
+- Recover from an OSD failure
+- Upgrade the Rook operator or Ceph version
+- Diagnose `HEALTH_WARN` / `HEALTH_ERR` conditions via the Ceph toolbox
+- Troubleshoot PVC binding failures on Ceph-backed storage
+
+**Target stack:** Any Kubernetes cluster running Rook/Ceph
+
+**Enforces:**
+- `HEALTH_OK` gate before every node drain, upgrade, or destructive operation
+- `ceph osd set noout` before draining any node with OSDs
+- `ceph osd safe-to-destroy` check before purging an OSD
+- Version-pinned toolbox manifest (not `master` branch)
+- Operator-first upgrade sequence (Rook operator → then Ceph version)
+- Explicit disk wipe before CephCluster deletion to prevent orphaned LVM metadata
+
+---
+
+### `openbao-operations`
+
+> Deploy and operate OpenBao (open-source Vault fork) on Kubernetes: Helm
+> installation, initialization, all unseal methods, secrets engine and auth
+> method configuration, policy authoring, Raft snapshots, and upgrades.
+
+**Use this skill when you want to:**
+- Install OpenBao on Kubernetes with HA Raft storage (Day 0)
+- Initialize OpenBao and handle unseal keys or KMS configuration safely
+- Configure Kubernetes auth or AppRole auth for pod access
+- Enable and configure KV, PKI, or transit secrets engines
+- Write least-privilege policies stored in Git
+- Back up Raft state or restore from a snapshot
+- Upgrade OpenBao safely (standbys first, active last)
+- Troubleshoot a sealed or unhealthy OpenBao pod
+
+**Target stack:** Any Kubernetes cluster — cloud-agnostic (AWS KMS, GCP
+CKMS, Azure Key Vault, or manual Shamir unseal)
+
+> **Note:** OpenBao is a Vault fork. CLI binary is `bao` (not `vault`).
+> Environment variables use `BAO_ADDR`, `BAO_TOKEN` (not `VAULT_*`).
+
+**Enforces:**
+- Audit logging enabled on Day 0 before any secrets are written
+- Root token revoked immediately after initial configuration
+- PGP-encrypted init output for sensitive environments
+- `setNodeId: true` in HA Raft to prevent split-brain on pod reschedule
+- `global.tlsDisable: false` in production
+- Standbys upgraded before active pod (OnDelete StatefulSet strategy)
+- Raft snapshot + quiesce sequence before restore
+- One Kubernetes auth role per service account (no sharing)
+
+---
+
 ### `devops-platform-skill-designer`
 
 > Design and create high-quality, production-grade `SKILL.md` files for DevOps
